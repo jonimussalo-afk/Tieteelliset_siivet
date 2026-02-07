@@ -1,0 +1,18 @@
+{
+  "name": "Tieteelliset siivet",
+  "short_name": "T. Siivet",
+  "description": "Juomaruletti – pidä hauskaa vastuullisesti",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230f172a'/><text x='256' y='300' text-anchor='middle' font-size='280'>🪽</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
