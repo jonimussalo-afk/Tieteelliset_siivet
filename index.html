@@ -1,28 +1,354 @@
-const CACHE_NAME = 'tieteelliset-siivet-v1';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json'
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="T. Siivet">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>Tieteelliset siivet</title>
+<link rel="manifest" href="manifest.json">
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(e=>console.log('SW reg failed',e))}
+</script>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪽</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f172a'/><text x='50' y='58' text-anchor='middle' font-size='55'>🪽</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#0f172a,#1e293b);color:#f1f5f9;min-height:100vh;min-height:100dvh;overflow-x:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button{font-family:inherit}
+.setup{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px}
+.setup-box{background:rgba(30,41,59,.95);border-radius:24px;padding:36px 28px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+.title{font-size:26px;font-weight:800;text-align:center;background:linear-gradient(135deg,#a78bfa,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{text-align:center;color:#94a3b8;margin-bottom:28px;font-size:14px}
+.label{font-size:13px;color:#94a3b8;display:block;margin-bottom:6px}
+input[type=range]{width:100%;accent-color:#8b5cf6;margin-bottom:4px}
+.val{text-align:center;font-size:28px;font-weight:800;margin-bottom:20px;color:#e2e8f0}
+.gender-row{display:flex;gap:12px;margin-bottom:28px}
+.gender-btn{flex:1;padding:12px 0;border-radius:12px;border:2px solid #334155;background:0 0;color:#94a3b8;font-weight:600;font-size:16px;cursor:pointer}
+.gender-btn.active{border-color:#8b5cf6;background:rgba(139,92,246,.12);color:#c4b5fd}
+.start-btn{width:100%;padding:16px 0;border-radius:14px;border:none;cursor:pointer;background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-size:18px;font-weight:700;box-shadow:0 4px 20px rgba(139,92,246,.4)}
+.game{padding:0 0 32px}
+.header{padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.header button{background:0 0;border:none;color:#94a3b8;cursor:pointer;font-size:13px}
+.stats{display:flex;gap:12px;align-items:center}
+.stat{text-align:center}
+.stat-val{font-size:18px;font-weight:800}
+.stat-lbl{font-size:9px;color:#64748b}
+.wheel-area{display:flex;flex-direction:column;align-items:center;padding:8px 16px 0}
+.pointer{font-size:28px;margin-bottom:-10px;z-index:10;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.wheel-wrap{position:relative;width:300px;height:300px}
+.wheel-wrap svg{width:100%;height:100%}
+.result-box{min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;margin-top:8px}
+.result-icon{font-size:48px;margin-bottom:4px}
+.result-name{font-size:18px;font-weight:800}
+.result-sub{font-size:13px;color:#94a3b8;margin-top:2px}
+.buttons{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.spin-btn{width:100%;padding:18px 0;border-radius:16px;border:none;cursor:pointer;color:#fff;font-size:20px;font-weight:800;transition:all .3s}
+.spin-btn.ready{background:linear-gradient(135deg,#8b5cf6,#6366f1);box-shadow:0 4px 24px rgba(139,92,246,.5)}
+.spin-btn.busy{background:linear-gradient(135deg,#334155,#475569);opacity:.6;cursor:default}
+.turbo-btn{width:100%;padding:14px 0;border-radius:14px;border:2px solid #0ea5e9;background:0 0;cursor:pointer;color:#7dd3fc;font-size:16px;font-weight:700;transition:all .3s}
+.turbo-btn.active{background:rgba(14,165,233,.15)}
+.turbo-btn:disabled{opacity:.4;cursor:default}
+.water-pct{text-align:center;font-size:12px;color:#7dd3fc}
+.lock-box{background:linear-gradient(135deg,#1e293b,#0f172a);border-radius:20px;padding:20px 32px;text-align:center;border:2px solid #334155;width:100%;max-width:320px}
+.lock-label{font-size:14px;color:#94a3b8;margin-bottom:4px}
+.lock-time{font-size:42px;font-weight:800;color:#f59e0b;font-variant-numeric:tabular-nums}
+.lock-hint{font-size:12px;color:#64748b;margin-top:4px}
+.lock-bar{background:#334155;border-radius:6px;height:6px;margin-top:12px;overflow:hidden}
+.lock-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#f59e0b,#eab308);transition:width 1s linear}
+.warn{margin:16px 16px 0;background:rgba(127,29,29,.3);border:1px solid #ef4444;border-radius:14px;padding:14px 18px;text-align:center}
+.warn-title{font-size:16px;font-weight:700;color:#fca5a5}
+.warn-sub{font-size:12px;color:#fca5a5;margin-top:4px}
+.history{padding:16px 16px 0}
+.history h2{font-size:14px;font-weight:600;color:#cbd5e1;margin-bottom:12px}
+.history-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.history-card{display:flex;flex-direction:column;align-items:center;justify-content:center;width:72px;height:84px;border-radius:14px;position:relative;transition:transform .2s;cursor:default}
+.history-card:active{transform:scale(1.08)}
+.history-num{font-size:10px;color:#64748b;position:absolute;top:5px;right:7px;font-weight:600}
+.history-icon{font-size:30px;line-height:1;margin-top:4px}
+.history-name{font-size:10px;font-weight:700;margin-top:4px}
+.history-time{font-size:9px;color:#64748b}
+.summary{margin-top:14px;background:#0f172a;border-radius:12px;padding:10px 14px;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.summary-item{display:flex;align-items:center;gap:4px}
+.summary-icon{font-size:18px}
+.summary-count{font-size:14px;font-weight:700}
+.reset-btn{margin-top:12px;width:100%;padding:10px 0;border-radius:10px;border:1px solid #334155;background:0 0;color:#f87171;cursor:pointer;font-size:13px}
+.particle{position:fixed;font-size:24px;pointer-events:none;z-index:50}
+@keyframes fadeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.fade-in{animation:fadeIn .4s ease}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const SLOTS=[
+{name:"Olut",icon:"🍺",cl:33,pct:4.7,lockMin:30,color:"#f59e0b"},
+{name:"Siideri",icon:"🍏",cl:33,pct:4.7,lockMin:30,color:"#22c55e"},
+{name:"Lonkero",icon:"🥂",cl:33,pct:5.5,lockMin:35,color:"#06b6d4"},
+{name:"Drinkki",icon:"🍸",cl:4,pct:40,lockMin:50,color:"#a855f7"},
+{name:"Shotti",icon:"🥃",cl:4,pct:40,lockMin:55,color:"#ef4444"},
+{name:"Vesi",icon:"💧",cl:0,pct:0,lockMin:5,color:"#3b82f6"}
 ];
+const PACE=45;
+const alcG=(cl,p)=>cl*(p/100)*.789;
+const calcBAC=(g,w,gen,h)=>Math.max(0,g/(w*(gen==="male"?.68:.55))-.15*h);
+const bacCol=b=>b<.3?"#22c55e":b<.6?"#eab308":b<1?"#f97316":"#ef4444";
+const bacMsg=b=>b<.1?"Selvinpäin 👍":b<.3?"Lievä humalatila":b<.6?"Kohtalainen humala":b<1?"⚠️ Voimakas humala":b<1.5?"🛑 Erittäin humalassa":"🚨 VAARALLINEN TASO";
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
-  );
-});
+let state={page:"setup",weight:80,gender:"male",lastMealAgo:1,log:[],spinning:false,angle:0,result:null,lockUntil:null,showResult:false,resultShownAt:null,turboLevel:0,turboForceWater:false,turboNoStrongUntil:null,particles:[],lastFoodReminder:null};
+let animId=null,particleId=null;
+const $=id=>document.getElementById(id);
+const app=$("app");
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
+function getSlots(){
+  const n=now();
+  // If turbo force water, show full wheel but all water
+  if(state.turboForceWater) return SLOTS.map(s=>({...SLOTS[5],color:s.color}));
+  // If within no-strong hour, remove Drinkki & Shotti
+  if(state.turboNoStrongUntil&&n<state.turboNoStrongUntil){
+    return SLOTS.filter(x=>x.name!=="Drinkki"&&x.name!=="Shotti");
+  }
+  return [...SLOTS];
+}
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
-  );
-});
+function now(){return Date.now()}
+
+function render(){
+  const s=state;
+  if(s.page==="setup") return renderSetup();
+  renderGame();
+}
+
+function renderSetup(){
+  const s=state;
+  app.innerHTML=`<div class="setup"><div class="setup-box">
+    <div style="font-size:48px;text-align:center;margin-bottom:8px">🪽🧪</div>
+    <div class="title">Tieteelliset siivet</div>
+    <p class="sub">Pyöräytä ja saat lentoluvan – mutta aina vastuullisesti</p>
+    <label class="label">Paino (kg)</label>
+    <input type="range" min="40" max="150" value="${s.weight}" id="wSlider">
+    <div class="val" id="wVal">${s.weight} kg</div>
+    <label class="label">Sukupuoli</label>
+    <div class="gender-row">
+      <button class="gender-btn ${s.gender==="male"?"active":""}" id="gMale">Mies ♂</button>
+      <button class="gender-btn ${s.gender==="female"?"active":""}" id="gFemale">Nainen ♀</button>
+    </div>
+    <label class="label">Milloin söit viimeksi kunnolla?</label>
+    <div class="gender-row" style="flex-wrap:wrap;gap:8px;margin-bottom:28px">
+      ${[["0","Juuri äsken"],["1","~1h sitten"],["2","~2h sitten"],["3","3h+ sitten"],["5","En muista"]].map(([v,l])=>`<button class="gender-btn meal-btn ${state.lastMealAgo==v?"active":""}" data-meal="${v}" style="flex:auto;padding:10px 14px;font-size:14px">${l}</button>`).join("")}
+    </div>
+    ${state.lastMealAgo>=3?`<div style="background:rgba(234,179,8,.12);border:1px solid #eab308;border-radius:12px;padding:12px 16px;margin-bottom:20px;text-align:center"><div style="font-size:14px;font-weight:700;color:#fde047">🍽️ Syö ennen juomista!</div><div style="font-size:12px;color:#eab308;margin-top:4px">Tyhjään mahaan juominen nostaa promillea nopeammin ja lisää pahoinvoinnin riskiä.</div></div>`:""}
+    <button class="start-btn" id="startBtn">🪽 Aloita lento</button>
+  </div></div>`;
+  $("wSlider").oninput=e=>{state.weight=+e.target.value;$("wVal").textContent=state.weight+" kg"};
+  $("gMale").onclick=()=>{state.gender="male";render()};
+  $("gFemale").onclick=()=>{state.gender="female";render()};
+  document.querySelectorAll(".meal-btn").forEach(b=>b.onclick=()=>{state.lastMealAgo=+b.dataset.meal;render()});
+  $("startBtn").onclick=()=>{state.mealTime=now()-state.lastMealAgo*36e5;state.page="game";render()};
+}
+
+function renderGame(){
+  const s=state,n=now();
+  const totalG=s.log.reduce((a,e)=>a+e.grams,0);
+  const firstT=s.log.length?s.log[0].time:n;
+  const hrsEl=(n-firstT)/36e5;
+  const bac=s.log.length?calcBAC(totalG,s.weight,s.gender,hrsEl):0;
+  const bc=bacCol(bac),stdD=totalG/12,soberH=bac>0?bac/.15:0;
+  const locked=s.lockUntil&&n<s.lockUntil;
+
+  // Food reminder logic
+  const hoursSinceMeal=s.mealTime?(n-s.mealTime)/36e5:0;
+  const shouldRemindFood=hoursSinceMeal>=2;
+  const foodUrgent=hoursSinceMeal>=3.5;
+  const showFoodReminder=shouldRemindFood&&(!s.lastFoodReminder||(n-s.lastFoodReminder)>=18e5); // remind every 30min
+
+  const lockSec=locked?Math.ceil((s.lockUntil-n)/1000):0;
+  const lockM=Math.floor(lockSec/60),lockS=lockSec%60;
+  const slots=getSlots();
+  const waterPct=Math.round(slots.filter(x=>x.pct===0).length/slots.length*100);
+
+  const noStrong=s.turboNoStrongUntil&&n>now()-1;
+  const noStrongActive=s.turboNoStrongUntil&&now()<s.turboNoStrongUntil;
+  const noStrongRemMin=noStrongActive?Math.ceil((s.turboNoStrongUntil-now())/6e4):0;
+
+  // Build wheel SVG
+  const ws=300,cx=ws/2,cy=ws/2,r=ws/2-8;
+  let svgSegs="";
+  slots.forEach((sl,i)=>{
+    const sa=360/slots.length;
+    const a1=(i*sa-90)*Math.PI/180, a2=((i+1)*sa-90)*Math.PI/180;
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
+    const la=sa>180?1:0;
+    const ma=((i+.5)*sa-90)*Math.PI/180;
+    const tx=cx+r*.62*Math.cos(ma),ty=cy+r*.62*Math.sin(ma);
+    const rd=(ma*180/Math.PI)+90;
+    svgSegs+=`<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${la},1 ${x2},${y2} Z" fill="${sl.color}" stroke="#0f172a" stroke-width="2"/>`;
+    svgSegs+=`<text x="${tx}" y="${ty-8}" text-anchor="middle" dominant-baseline="middle" font-size="24" transform="rotate(${rd},${tx},${ty-8})">${sl.icon}</text>`;
+    svgSegs+=`<text x="${tx}" y="${ty+14}" text-anchor="middle" dominant-baseline="middle" font-size="${slots.length>8?8:10}" fill="#fff" font-weight="700" transform="rotate(${rd},${tx},${ty+14})">${sl.name}</text>`;
+  });
+  svgSegs+=`<circle cx="${cx}" cy="${cy}" r="22" fill="#1e293b" stroke="#334155" stroke-width="2"/><text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="16">🎰</text>`;
+
+  // Result HTML
+  let resultHtml="";
+  if(s.showResult&&s.result){
+    const sr=s.result,g=alcG(sr.cl,sr.pct);
+    const isNew=s.resultShownAt&&(now()-s.resultShownAt)<600;
+    resultHtml=`<div class="result-box${isNew?" fade-in":""}">
+      <div class="result-icon">${sr.icon}</div>
+      <div class="result-name" style="color:${sr.color}">✈️ Lentolupa myönnetty: ${sr.name}!</div>
+      <div class="result-sub">${sr.pct>0?`+${(g/12).toFixed(1)} annosta · Seuraava lento ${sr.lockMin} min päästä`:"Hyvä valinta kapteeni! 💪 Seuraava lento 5 min päästä"}</div>
+    </div>`;
+  } else {
+    resultHtml=`<div class="result-box"></div>`;
+  }
+
+  // Buttons
+  let btnHtml="";
+  if(locked){
+    const prog=(1-(s.lockUntil-n)/((s.result?.lockMin||30)*6e4))*100;
+    btnHtml=`<div class="lock-box">
+      <div class="lock-label">🔒 Aikalukko aktiivinen</div>
+      <div class="lock-time">${lockM}:${String(lockS).padStart(2,"0")}</div>
+      <div class="lock-hint">Nauti juomastasi rauhassa ja juo vettä!</div>
+      <div class="lock-bar"><div class="lock-fill" style="width:${prog}%"></div></div>
+    </div>`;
+  } else {
+    btnHtml=`<div class="buttons">
+      <button class="spin-btn ${s.spinning?"busy":"ready"}" id="spinBtn" ${s.spinning?"disabled":""}>${s.spinning?"🌀 Pyörii...":"🪽 PYÖRÄYTÄ!"}</button>
+      <button class="turbo-btn ${s.turboForceWater?"active":""}" id="turboBtn" ${s.spinning?"disabled":""}>🌊 Turbulenssia!</button>
+      ${s.turboForceWater?`<div class="water-pct">💧 Seuraava pyöräytys: 100% vettä</div>`:""}
+      ${noStrongActive&&!s.turboForceWater?`<div class="water-pct">🚫 Ei väkeviä vielä ${noStrongRemMin} min</div>`:""}
+    </div>`;
+  }
+
+  // History
+  let histHtml="";
+  if(s.log.length){
+    let cards=s.log.map((e,i)=>{
+      const m=Math.floor((n-e.time)/6e4);
+      return `<div class="history-card" style="background:linear-gradient(135deg,${e.color}22,${e.color}11);border:1px solid ${e.color}55">
+        <div class="history-num">#${i+1}</div>
+        <div class="history-icon">${e.icon}</div>
+        <div class="history-name" style="color:${e.color}">${e.name}</div>
+        <div class="history-time">${m<1?"nyt":`${m} min`}</div>
+      </div>`;
+    }).join("");
+    // Summary
+    const counts={};
+    s.log.forEach(e=>{if(!counts[e.icon])counts[e.icon]={icon:e.icon,color:e.color,n:0};counts[e.icon].n++});
+    let sumItems=Object.values(counts).map(c=>`<div class="summary-item"><span class="summary-icon">${c.icon}</span><span class="summary-count" style="color:${c.color}">×${c.n}</span></div>`).join("");
+    histHtml=`<div class="history"><h2>Lentohistoria</h2>
+      <div class="history-grid">${cards}</div>
+      <div class="summary">${sumItems}</div>
+      <button class="reset-btn" id="resetBtn">🔄 Nollaa kaikki</button>
+    </div>`;
+  }
+
+  // Warning
+  let warnHtml="";
+  if(bac>=1) warnHtml=`<div class="warn"><div class="warn-title">🛑 Lentokielto – promillet korkealla</div><div class="warn-sub">Juo vettä, syö ja pidä taukoa.</div></div>`;
+
+  app.innerHTML=`<div class="game">
+    <div class="header">
+      <button id="settingsBtn">⚙️ Asetukset</button>
+      <div class="stats">
+        <div class="stat"><div class="stat-val" style="color:${bc}">${bac.toFixed(2)}‰</div><div class="stat-lbl">${bacMsg(bac)}</div></div>
+        <div class="stat"><div class="stat-val" style="color:#a5b4fc">${stdD.toFixed(1)}</div><div class="stat-lbl">annosta</div></div>
+        <div class="stat"><div class="stat-val" style="color:#34d399">${soberH>0?soberH.toFixed(1)+"h":"-"}</div><div class="stat-lbl">selvin</div></div>
+      </div>
+    </div>
+    <div class="wheel-area">
+      <div class="pointer">▼</div>
+      <div class="wheel-wrap"><svg viewBox="0 0 ${ws} ${ws}" id="wheel" style="transform:rotate(${s.angle}deg)">${svgSegs}</svg></div>
+      ${resultHtml}
+      ${btnHtml}
+    </div>
+    ${warnHtml}
+    ${showFoodReminder?`<div style="margin:16px 16px 0;background:rgba(234,179,8,.15);border:1px solid #eab308;border-radius:14px;padding:14px 18px;text-align:center">
+      <div style="font-size:15px;font-weight:700;color:#fde047">${foodUrgent?"🚨 Syö nyt jotain!":"🍽️ Aika syödä!"}</div>
+      <div style="font-size:12px;color:#eab308;margin-top:4px">${foodUrgent?"Edellisestä ateriasta on jo "+hoursSinceMeal.toFixed(1)+"h. Ruoka hidastaa alkoholin imeytymistä ja pitää sinut paremmassa kunnossa.":"Edellisestä ateriasta on "+hoursSinceMeal.toFixed(1)+"h. Napostele jotain – se auttaa kehoa käsittelemään alkoholia."}</div>
+      <button id="ateBtn" style="margin-top:10px;padding:8px 20px;border-radius:10px;border:1px solid #eab308;background:rgba(234,179,8,.2);color:#fde047;cursor:pointer;font-size:13px;font-weight:600">✅ Söin juuri!</button>
+    </div>`:""}
+    ${histHtml}
+  </div>`;
+
+  // Events
+  $("settingsBtn").onclick=()=>{state.page="setup";render()};
+  if(!locked&&$("spinBtn")) $("spinBtn").onclick=spin;
+  if(!locked&&$("turboBtn")) $("turboBtn").onclick=()=>{state.turboForceWater=true;render()};
+  if($("resetBtn")) $("resetBtn").onclick=()=>{state.log=[];state.lockUntil=null;state.result=null;state.showResult=false;state.turboLevel=0;state.turboForceWater=false;state.turboNoStrongUntil=null;state.lastFoodReminder=null;render()};
+  if($("ateBtn")) $("ateBtn").onclick=()=>{state.mealTime=now();state.lastFoodReminder=now();render()};
+}
+
+function spin(){
+  if(state.spinning||(state.lockUntil&&now()<state.lockUntil)) return;
+  state.showResult=false;state.result=null;state.spinning=true;
+  render();
+
+  const slots=getSlots();
+  const segA=360/slots.length;
+  const winIdx=Math.floor(Math.random()*slots.length);
+  const segC=winIdx*segA+segA/2;
+  const extra=(5+Math.floor(Math.random()*3))*360;
+  const target=state.angle+extra+(360-segC-(state.angle%360)+360)%360;
+  const startA=state.angle,delta=target-startA;
+  const dur=4000+Math.random()*1000,startT=performance.now();
+  const ease=t=>1-Math.pow(1-t,4);
+
+  function anim(time){
+    const p=Math.min((time-startT)/dur,1);
+    state.angle=startA+delta*ease(p);
+    const el=$("wheel");
+    if(el) el.style.transform=`rotate(${state.angle}deg)`;
+    if(p<1){animId=requestAnimationFrame(anim)}
+    else{
+      state.angle=target;state.spinning=false;
+      const slot=slots[winIdx];
+      state.result=slot;state.showResult=true;state.resultShownAt=now();
+      if(slot.pct>0){
+        state.log.push({...slot,grams:alcG(slot.cl,slot.pct),time:now()});
+      }
+      // After forced water spin, start 1h no-strong period
+      if(state.turboForceWater){
+        state.turboForceWater=false;
+        state.turboNoStrongUntil=now()+36e5;
+      }
+      state.lockUntil=now()+slot.lockMin*6e4;
+      spawnParticles(slot);
+      render();
+    }
+  }
+  animId=requestAnimationFrame(anim);
+}
+
+function spawnParticles(slot){
+  state.particles=Array.from({length:20},(_,i)=>({
+    id:now()+i,x:50+(Math.random()-.5)*10,y:45+(Math.random()-.5)*10,
+    vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8-3,
+    char:slot.icon,life:1
+  }));
+  renderParticles();
+  if(particleId) clearInterval(particleId);
+  particleId=setInterval(()=>{
+    state.particles=state.particles.map(p=>({...p,x:p.x+p.vx*.3,y:p.y+p.vy*.3,vy:p.vy+.15,life:p.life-.025})).filter(p=>p.life>0);
+    renderParticles();
+    if(!state.particles.length) clearInterval(particleId);
+  },30);
+}
+
+function renderParticles(){
+  let el=$("particles");
+  if(!el){el=document.createElement("div");el.id="particles";document.body.appendChild(el)}
+  el.innerHTML=state.particles.map(p=>`<div class="particle" style="left:${p.x}%;top:${p.y}%;opacity:${p.life};transform:scale(${.5+p.life})">${p.char}</div>`).join("");
+}
+
+// Tick for lock timer & stats
+setInterval(()=>{if(state.page==="game")render()},1000);
+render();
+</script>
+</body>
+</html>
